@@ -306,7 +306,7 @@
     }
 
     dialog::backdrop { background: rgba(15,25,45,.5); backdrop-filter: blur(3px); }
-    #siteDialog::backdrop { background: transparent; backdrop-filter: none; }
+    #siteDialog::backdrop { background: rgba(22,32,51,.18); backdrop-filter: blur(8px); }
     .modal-body { padding: 24px; }
     .modal-body h2 { margin: 0 0 8px; font-size: 23px; }
     .modal-body p { margin: 0 0 18px; color: var(--muted); line-height: 1.5; }
@@ -452,7 +452,7 @@
       </header>
 
       <div class="content">
-        <label for="site">Work site</label>
+        <label for="site">RC</label>
         <select id="site">
           <option>North Carlsbad</option><option>South Carlsbad</option><option>Escondido</option>
           <option>Kearny Mesa</option><option>Clairemont</option><option>North Park</option>
@@ -491,9 +491,9 @@
 
   <dialog id="siteDialog">
     <form class="modal-body" method="dialog" onsubmit="saveSiteChoice(event)">
-      <h2>Select your work site</h2>
+      <h2>Select your RC</h2>
       <p>Choose where you’re working today.</p>
-      <label for="dailySite">Work site</label>
+      <label for="dailySite">RC</label>
       <select id="dailySite" required></select>
       <label class="remember-choice" for="rememberSite">
         <input id="rememberSite" type="checkbox">
