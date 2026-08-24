@@ -284,7 +284,7 @@
       margin: auto;
       padding: 14px 16px;
       border-radius: 13px;
-      background: var(--ink);
+      background: #11633e;
       color: white;
       box-shadow: 0 14px 40px rgba(15,25,45,.25);
       opacity: 0;
@@ -568,30 +568,59 @@
       toastTimer = setTimeout(() => toast.classList.remove('show'), 4500);
     }
 
-    function runServer(method, args = []) {
+    function hasAppsScriptConnection() {
+      return typeof google !== 'undefined' && google.script && google.script.run;
+    }
+
+    function runServer(method, args = [], confirmation = 'Your submission was recorded.') {
+      if (!hasAppsScriptConnection()) {
+        setBusy(false);
+        showToast('This preview is not connected to Google Apps Script. Nothing was submitted.', true);
+        return;
+      }
+
       setBusy(true);
+      let finished = false;
+      const timeout = setTimeout(() => {
+        if (finished) return;
+        finished = true;
+        setBusy(false);
+        showToast('The request took too long. Please try again.', true);
+      }, 15000);
+
       google.script.run
         .withSuccessHandler(response => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timeout);
           setBusy(false);
+          showToast(response || confirmation);
           loadStatus();
         })
         .withFailureHandler(error => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timeout);
           setBusy(false);
           showToast('Something went wrong. ' + (error?.message || 'Please try again.'), true);
         })[method](...args);
     }
 
     function loadStatus() {
+      if (!hasAppsScriptConnection()) {
+        $('status').textContent = 'Preview mode — submissions require the Google Apps Script web app';
+        return;
+      }
       google.script.run
         .withSuccessHandler(response => { $('status').textContent = response || 'Status unavailable'; })
         .withFailureHandler(() => { $('status').textContent = 'Status unavailable — refresh to try again'; })
         .getStatus();
     }
 
-    function checkIn() { runServer('recordCheckIn', [$('site').value]); }
-    function checkOut() { runServer('recordCheckOut'); }
-    function startBreak() { runServer('recordBreakOut'); }
-    function endBreak() { runServer('recordBreakIn'); }
+    function checkIn() { runServer('recordCheckIn', [$('site').value], `Checked in at ${$('site').value}.`); }
+    function checkOut() { runServer('recordCheckOut', [], 'You are checked out.'); }
+    function startBreak() { runServer('recordBreakOut', [], 'Your break has started.'); }
+    function endBreak() { runServer('recordBreakIn', [], 'Your break has ended.'); }
 
     function openLateDialog() { setLateMinutes(15); $('lateDialog').showModal(); setTimeout(() => $('lateMinutes').focus(), 0); }
     function setLateMinutes(minutes) {
@@ -606,7 +635,7 @@
         button.classList.toggle('active', Number(button.textContent.match(/\d+/)[0]) === Number(minutes));
       });
     }
-    function submitLate(event) { event.preventDefault(); $('lateDialog').close(); runServer('reportRunningLate', [$('site').value, $('lateMinutes').value]); }
+    function submitLate(event) { event.preventDefault(); $('lateDialog').close(); runServer('reportRunningLate', [$('site').value, $('lateMinutes').value], `Your team was notified that you’ll be about ${$('lateMinutes').value} minutes late.`); }
 
     function openLunchDialog() { $('lunchOut').value = ''; $('lunchIn').value = ''; $('lunchDialog').showModal(); }
     function submitLunch(event) {
@@ -614,7 +643,7 @@
       const start = $('lunchOut').value, end = $('lunchIn').value;
       if (end <= start) { showToast('Lunch end time must be after the start time.', true); return; }
       $('lunchDialog').close();
-      runServer('recordLunchRetroactive', [formatTime(start), formatTime(end)]);
+      runServer('recordLunchRetroactive', [formatTime(start), formatTime(end)], 'Your lunch was recorded.');
     }
 
     function formatTime(value) {
@@ -624,7 +653,7 @@
     }
 
     function openAbsenceDialog() { $('sickPay').checked = false; $('absenceDialog').showModal(); }
-    function submitAbsence(event) { event.preventDefault(); $('absenceDialog').close(); runServer('reportUnableToAttend', [$('site').value, $('sickPay').checked]); }
+    function submitAbsence(event) { event.preventDefault(); $('absenceDialog').close(); runServer('reportUnableToAttend', [$('site').value, $('sickPay').checked], 'Your school leader and program manager were notified.'); }
 
     function todayKey() {
       const now = new Date();
