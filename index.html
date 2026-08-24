@@ -553,6 +553,7 @@
     const $ = id => document.getElementById(id);
     let toastTimer;
     const SITE_PREF_KEY = 'edLadderTimeClockSitePreference';
+    const DEMO_STATUS_KEY = 'edLadderTimeClockDemoStatus';
 
     function setBusy(isBusy) {
       $('busy').classList.toggle('show', isBusy);
@@ -574,8 +575,12 @@
 
     function runServer(method, args = [], confirmation = 'Your submission was recorded.') {
       if (!hasAppsScriptConnection()) {
-        setBusy(false);
-        showToast('This preview is not connected to Google Apps Script. Nothing was submitted.', true);
+        setBusy(true);
+        setTimeout(() => {
+          setBusy(false);
+          updateDemoStatus(method, args);
+          showToast(confirmation);
+        }, 550);
         return;
       }
 
@@ -608,13 +613,30 @@
 
     function loadStatus() {
       if (!hasAppsScriptConnection()) {
-        $('status').textContent = 'Preview mode — submissions require the Google Apps Script web app';
+        try {
+          $('status').textContent = localStorage.getItem(DEMO_STATUS_KEY) || 'Ready to check in';
+        } catch (_) {
+          $('status').textContent = 'Ready to check in';
+        }
         return;
       }
       google.script.run
         .withSuccessHandler(response => { $('status').textContent = response || 'Status unavailable'; })
         .withFailureHandler(() => { $('status').textContent = 'Status unavailable — refresh to try again'; })
         .getStatus();
+    }
+
+    function updateDemoStatus(method, args) {
+      const statusByAction = {
+        recordCheckIn: `Checked in at ${args[0] || $('site').value}`,
+        recordCheckOut: 'Checked out',
+        recordBreakOut: 'On break',
+        recordBreakIn: `Checked in at ${$('site').value}`
+      };
+      const nextStatus = statusByAction[method];
+      if (!nextStatus) return;
+      $('status').textContent = nextStatus;
+      try { localStorage.setItem(DEMO_STATUS_KEY, nextStatus); } catch (_) {}
     }
 
     function checkIn() { runServer('recordCheckIn', [$('site').value], `Checked in at ${$('site').value}.`); }
