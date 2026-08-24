@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>The Ed Ladder | Time Clock</title>
+  <style>
+    :root {
+      --brand: #386fd1;
+      --brand-dark: #2457ad;
+      --ink: #162033;
+      --muted: #657087;
+      --line: #dce3ef;
+      --surface: #ffffff;
+      --canvas: #f4f7fb;
+      --success: #178451;
+      --success-soft: #e9f7f0;
+      --danger: #c43d47;
+      --danger-soft: #fff0f1;
+      --warning: #9a6500;
+      --shadow: 0 18px 55px rgba(30, 52, 88, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(56,111,209,.12), transparent 32rem),
+        var(--canvas);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, select, input { font: inherit; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .shell {
+      width: min(100%, 560px);
+      margin: 0 auto;
+      padding: 24px 16px max(32px, env(safe-area-inset-bottom));
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 4px 22px;
+      color: var(--brand);
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -.04em;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--brand);
+      color: white;
+      font-size: 17px;
+      letter-spacing: -.08em;
+      box-shadow: 0 8px 20px rgba(56,111,209,.28);
+    }
+
+    .card {
+      overflow: hidden;
+      border: 1px solid rgba(220,227,239,.9);
+      border-radius: 24px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .header { padding: 26px 24px 22px; }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 8vw, 42px);
+      letter-spacing: -.045em;
+      line-height: 1.05;
+    }
+
+    .status {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-top: 20px;
+      padding: 14px 16px;
+      border: 1px solid #c7ead9;
+      border-radius: 14px;
+      background: var(--success-soft);
+      color: #11633e;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .status-dot {
+      flex: 0 0 auto;
+      width: 10px;
+      height: 10px;
+      margin-top: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 4px rgba(23,132,81,.12);
+    }
+
+    .content {
+      padding: 22px 24px 26px;
+      border-top: 1px solid var(--line);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    select, input {
+      width: 100%;
+      min-height: 50px;
+      padding: 0 14px;
+      border: 1px solid #bfc9d9;
+      border-radius: 12px;
+      background: white;
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    select:focus, input:focus, button:focus-visible {
+      outline: 3px solid rgba(56,111,209,.25);
+      outline-offset: 2px;
+      border-color: var(--brand);
+    }
+
+    .hint {
+      margin: 8px 0 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .site-tools {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 8px 0 20px;
+    }
+
+    .site-tools .hint { margin: 0; }
+
+    .text-button {
+      flex: 0 0 auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--brand-dark);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 750;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .primary, .action {
+      width: 100%;
+      min-height: 54px;
+      border: 0;
+      border-radius: 13px;
+      cursor: pointer;
+      font-weight: 750;
+      transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+
+    .primary {
+      background: var(--brand);
+      color: white;
+      box-shadow: 0 10px 24px rgba(56,111,209,.24);
+      font-size: 17px;
+    }
+
+    .primary:hover { background: var(--brand-dark); transform: translateY(-1px); }
+
+    .section-title {
+      margin: 24px 0 11px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action {
+      display: flex;
+      min-height: 78px;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--ink);
+      text-align: left;
+    }
+
+    .action:hover { border-color: #aebbd0; background: #f9fbfe; transform: translateY(-1px); }
+    .action.danger { color: #9d2933; border-color: #f0c8cc; background: var(--danger-soft); }
+    .action.full { grid-column: 1 / -1; min-height: 58px; }
+
+    .icon {
+      display: grid;
+      flex: 0 0 34px;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 10px;
+      background: #edf3fd;
+      font-size: 18px;
+    }
+
+    .danger .icon { background: #ffe0e3; }
+
+    button:disabled { cursor: wait; opacity: .58; transform: none !important; }
+
+    .busy {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      background: rgba(244,247,251,.72);
+      backdrop-filter: blur(4px);
+    }
+
+    .busy.show { display: grid; }
+
+    .spinner {
+      width: 42px;
+      height: 42px;
+      border: 4px solid #d8e2f2;
+      border-top-color: var(--brand);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 30;
+      right: 16px;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      left: 16px;
+      max-width: 520px;
+      margin: auto;
+      padding: 14px 16px;
+      border-radius: 13px;
+      background: var(--ink);
+      color: white;
+      box-shadow: 0 14px 40px rgba(15,25,45,.25);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(18px);
+      transition: .2s ease;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: #9d2933; }
+
+    dialog {
+      width: min(calc(100% - 32px), 440px);
+      padding: 0;
+      border: 0;
+      border-radius: 20px;
+      color: var(--ink);
+      box-shadow: 0 24px 80px rgba(15,25,45,.28);
+    }
+
+    dialog::backdrop { background: rgba(15,25,45,.5); backdrop-filter: blur(3px); }
+    .modal-body { padding: 24px; }
+    .modal-body h2 { margin: 0 0 8px; font-size: 23px; }
+    .modal-body p { margin: 0 0 18px; color: var(--muted); line-height: 1.5; }
+    .field { margin-top: 14px; }
+
+    .remember-choice {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f8faff;
+      cursor: pointer;
+    }
+
+    .remember-choice input {
+      flex: 0 0 auto;
+      width: 20px;
+      min-height: 20px;
+      margin: 1px 0 0;
+      accent-color: var(--brand);
+    }
+
+    .remember-choice strong, .remember-choice small { display: block; }
+    .remember-choice small { margin-top: 3px; color: var(--muted); font-weight: 500; line-height: 1.4; }
+
+    .minute-display {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 7px;
+      margin: 14px 0 12px;
+      color: var(--brand);
+    }
+
+    .minute-display output {
+      font-size: 50px;
+      font-weight: 850;
+      letter-spacing: -.06em;
+      line-height: 1;
+    }
+
+    .minute-display span { color: var(--muted); font-weight: 750; }
+
+    .preset-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin: 0 -24px 16px;
+      padding: 4px 24px 10px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .preset {
+      flex: 0 0 auto;
+      min-width: 64px;
+      min-height: 42px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: white;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 750;
+      scroll-snap-align: center;
+    }
+
+    .preset.active { border-color: var(--brand); background: #edf3fd; color: var(--brand-dark); }
+
+    .minute-control {
+      display: grid;
+      grid-template-columns: 48px 1fr 48px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .stepper {
+      width: 48px;
+      height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: white;
+      color: var(--brand);
+      cursor: pointer;
+      font-size: 27px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    input[type="range"] {
+      min-height: 48px;
+      padding: 0;
+      border: 0;
+      accent-color: var(--brand);
+      cursor: ew-resize;
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      margin: 0 58px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .modal-actions button { flex: 1; min-height: 48px; border-radius: 11px; border: 1px solid var(--line); font-weight: 750; cursor: pointer; }
+    .cancel { background: white; color: var(--ink); }
+    .confirm { border-color: transparent !important; background: var(--brand); color: white; }
+    .confirm.warn { background: var(--danger); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 420px) {
+      .shell { padding: 14px 10px 26px; }
+      .header, .content { padding-right: 18px; padding-left: 18px; }
+      .card { border-radius: 20px; }
+      .grid { grid-template-columns: 1fr; }
+      .action, .action.full { grid-column: auto; min-height: 60px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">EL</span> The Ed Ladder</div>
+
+    <section class="card" aria-labelledby="page-title">
+      <header class="header">
+        <p class="eyebrow">Employee portal</p>
+        <h1 id="page-title">Time Clock</h1>
+        <div class="status" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="status">Loading your current status…</span>
+        </div>
+      </header>
+
+      <div class="content">
+        <label for="site">Work site</label>
+        <select id="site">
+          <option>North Carlsbad</option><option>South Carlsbad</option><option>Escondido</option>
+          <option>Kearny Mesa</option><option>Clairemont</option><option>North Park</option>
+          <option>Petco Park</option><option>College Avenue</option><option>Woodman</option>
+          <option>Euclid</option><option>Northgate</option><option>Paradise Valley</option>
+          <option>La Mesa</option><option>El Cajon</option><option>Plaza Bonita</option>
+          <option>Bonita</option><option>Otay Ranch</option><option>Chula Vista</option>
+          <option>Main Street</option><option>Topaz</option><option>Moreno Valley</option><option>Palm Desert</option>
+        </select>
+        <div class="site-tools">
+          <p class="hint">Confirm your site before checking in or reporting an attendance issue.</p>
+          <button class="text-button" type="button" onclick="openSiteDialog()">Change preference</button>
+        </div>
+
+        <button class="primary" type="button" onclick="checkIn()">Check in now</button>
+
+        <p class="section-title">During your shift</p>
+        <div class="grid">
+          <button class="action" type="button" onclick="startBreak()"><span class="icon" aria-hidden="true">☕</span>Start break</button>
+          <button class="action" type="button" onclick="endBreak()"><span class="icon" aria-hidden="true">↩</span>End break</button>
+          <button class="action" type="button" onclick="openLunchDialog()"><span class="icon" aria-hidden="true">🍽</span>Log lunch</button>
+          <button class="action" type="button" onclick="openLateDialog()"><span class="icon" aria-hidden="true">⏱</span>Running late</button>
+        </div>
+
+        <p class="section-title">End or miss a shift</p>
+        <div class="grid">
+          <button class="action danger" type="button" onclick="openAbsenceDialog()"><span class="icon" aria-hidden="true">!</span>Unable to attend</button>
+          <button class="action danger" type="button" onclick="checkOut()"><span class="icon" aria-hidden="true">↗</span>Check out</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="busy" class="busy" role="status" aria-label="Saving"><div class="spinner"></div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="siteDialog">
+    <form class="modal-body" method="dialog" onsubmit="saveSiteChoice(event)">
+      <h2>Select your work site</h2>
+      <p>Choose where you’re working today.</p>
+      <label for="dailySite">Work site</label>
+      <select id="dailySite" required></select>
+      <label class="remember-choice" for="rememberSite">
+        <input id="rememberSite" type="checkbox">
+        <span><strong>Keep this site selected</strong><small>Skip this question next time on this device. Leave unchecked to choose again tomorrow.</small></span>
+      </label>
+      <div class="modal-actions"><button class="confirm" value="default">Use this site</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="lateDialog">
+    <form class="modal-body" method="dialog" onsubmit="submitLate(event)">
+      <h2>Running late?</h2>
+      <p>Choose approximately how many minutes late you’ll be.</p>
+      <div class="minute-display" aria-live="polite"><output id="lateMinutesOutput" for="lateMinutes">15</output><span>minutes</span></div>
+      <div class="preset-scroll" aria-label="Quick minute choices">
+        <button class="preset" type="button" onclick="setLateMinutes(5)">5 min</button>
+        <button class="preset" type="button" onclick="setLateMinutes(10)">10 min</button>
+        <button class="preset active" type="button" onclick="setLateMinutes(15)">15 min</button>
+        <button class="preset" type="button" onclick="setLateMinutes(20)">20 min</button>
+        <button class="preset" type="button" onclick="setLateMinutes(30)">30 min</button>
+        <button class="preset" type="button" onclick="setLateMinutes(45)">45 min</button>
+        <button class="preset" type="button" onclick="setLateMinutes(60)">60 min</button>
+        <button class="preset" type="button" onclick="setLateMinutes(90)">90 min</button>
+        <button class="preset" type="button" onclick="setLateMinutes(120)">120 min</button>
+      </div>
+      <label class="sr-only" for="lateMinutes">Minutes late</label>
+      <div class="minute-control">
+        <button class="stepper" type="button" onclick="adjustLateMinutes(-5)" aria-label="Subtract 5 minutes">−</button>
+        <input id="lateMinutes" type="range" min="5" max="120" step="5" value="15" oninput="syncLateMinutes()">
+        <button class="stepper" type="button" onclick="adjustLateMinutes(5)" aria-label="Add 5 minutes">+</button>
+      </div>
+      <div class="range-labels" aria-hidden="true"><span>5 min</span><span>2 hours</span></div>
+      <div class="modal-actions"><button class="cancel" value="cancel">Cancel</button><button class="confirm" value="default">Notify team</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="lunchDialog">
+    <form class="modal-body" method="dialog" onsubmit="submitLunch(event)">
+      <h2>Log lunch</h2>
+      <p>Add the start and end time for a lunch you already took.</p>
+      <div class="field"><label for="lunchOut">Lunch started</label><input id="lunchOut" type="time" required></div>
+      <div class="field"><label for="lunchIn">Lunch ended</label><input id="lunchIn" type="time" required></div>
+      <div class="modal-actions"><button class="cancel" value="cancel">Cancel</button><button class="confirm" value="default">Save lunch</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="absenceDialog">
+    <form class="modal-body" method="dialog" onsubmit="submitAbsence(event)">
+      <h2>Unable to attend?</h2>
+      <p>Your school leader and program manager will be notified.</p>
+      <label><input id="sickPay" type="checkbox" style="width:auto; min-height:auto; margin-right:8px">Request sick time pay for this absence</label>
+      <div class="modal-actions"><button class="cancel" value="cancel">Go back</button><button class="confirm warn" value="default">Notify team</button></div>
+    </form>
+  </dialog>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let toastTimer;
+    const SITE_PREF_KEY = 'edLadderTimeClockSitePreference';
+
+    function setBusy(isBusy) {
+      $('busy').classList.toggle('show', isBusy);
+      document.querySelectorAll('button').forEach(button => button.disabled = isBusy);
+    }
+
+    function showToast(message, isError = false) {
+      const toast = $('toast');
+      toast.textContent = message;
+      toast.classList.toggle('error', isError);
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 4500);
+    }
+
+    function runServer(method, args = []) {
+      setBusy(true);
+      google.script.run
+        .withSuccessHandler(response => {
+          setBusy(false);
+          loadStatus();
+        })
+        .withFailureHandler(error => {
+          setBusy(false);
+          showToast('Something went wrong. ' + (error?.message || 'Please try again.'), true);
+        })[method](...args);
+    }
+
+    function loadStatus() {
+      google.script.run
+        .withSuccessHandler(response => { $('status').textContent = response || 'Status unavailable'; })
+        .withFailureHandler(() => { $('status').textContent = 'Status unavailable — refresh to try again'; })
+        .getStatus();
+    }
+
+    function checkIn() { runServer('recordCheckIn', [$('site').value]); }
+    function checkOut() { runServer('recordCheckOut'); }
+    function startBreak() { runServer('recordBreakOut'); }
+    function endBreak() { runServer('recordBreakIn'); }
+
+    function openLateDialog() { setLateMinutes(15); $('lateDialog').showModal(); setTimeout(() => $('lateMinutes').focus(), 0); }
+    function setLateMinutes(minutes) {
+      $('lateMinutes').value = Math.max(5, Math.min(120, minutes));
+      syncLateMinutes();
+    }
+    function adjustLateMinutes(change) { setLateMinutes(Number($('lateMinutes').value) + change); }
+    function syncLateMinutes() {
+      const minutes = $('lateMinutes').value;
+      $('lateMinutesOutput').value = minutes;
+      document.querySelectorAll('.preset').forEach(button => {
+        button.classList.toggle('active', Number(button.textContent.match(/\d+/)[0]) === Number(minutes));
+      });
+    }
+    function submitLate(event) { event.preventDefault(); $('lateDialog').close(); runServer('reportRunningLate', [$('site').value, $('lateMinutes').value]); }
+
+    function openLunchDialog() { $('lunchOut').value = ''; $('lunchIn').value = ''; $('lunchDialog').showModal(); }
+    function submitLunch(event) {
+      event.preventDefault();
+      const start = $('lunchOut').value, end = $('lunchIn').value;
+      if (end <= start) { showToast('Lunch end time must be after the start time.', true); return; }
+      $('lunchDialog').close();
+      runServer('recordLunchRetroactive', [formatTime(start), formatTime(end)]);
+    }
+
+    function formatTime(value) {
+      const [hourText, minute] = value.split(':');
+      const hour = Number(hourText);
+      return `${hour % 12 || 12}:${minute} ${hour >= 12 ? 'PM' : 'AM'}`;
+    }
+
+    function openAbsenceDialog() { $('sickPay').checked = false; $('absenceDialog').showModal(); }
+    function submitAbsence(event) { event.preventDefault(); $('absenceDialog').close(); runServer('reportUnableToAttend', [$('site').value, $('sickPay').checked]); }
+
+    function todayKey() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    function readSitePreference() {
+      try { return JSON.parse(localStorage.getItem(SITE_PREF_KEY) || 'null'); }
+      catch (_) { return null; }
+    }
+
+    function openSiteDialog() {
+      const preference = readSitePreference();
+      $('dailySite').value = $('site').value;
+      $('rememberSite').checked = Boolean(preference?.remember);
+      $('siteDialog').showModal();
+      setTimeout(() => $('dailySite').focus(), 0);
+    }
+
+    function saveSiteChoice(event) {
+      event.preventDefault();
+      const site = $('dailySite').value;
+      const remember = $('rememberSite').checked;
+      $('site').value = site;
+      try {
+        localStorage.setItem(SITE_PREF_KEY, JSON.stringify({ site, remember, selectedDate: todayKey() }));
+      } catch (_) {}
+      $('siteDialog').close();
+    }
+
+    function initializeSiteChoice() {
+      $('dailySite').innerHTML = $('site').innerHTML;
+      const preference = readSitePreference();
+      const availableSites = Array.from($('site').options).map(option => option.value);
+      if (preference?.site && availableSites.includes(preference.site)) {
+        $('site').value = preference.site;
+      }
+      const validForToday = preference?.selectedDate === todayKey();
+      if (!preference?.remember && !validForToday) openSiteDialog();
+    }
+
+    initializeSiteChoice();
+    loadStatus();
+  </script>
+</body>
+</html>
