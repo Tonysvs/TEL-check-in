@@ -22,6 +22,35 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
+function setupTimeClock() {
+  const sheet = getLogSheet_();
+  SpreadsheetApp.flush();
+  return 'Connected to "' + sheet.getName() + '" in spreadsheet ' + SPREADSHEET_ID + '.';
+}
+
+function submitTimeClockAction(action, args) {
+  const values = Array.isArray(args) ? args : [];
+
+  switch (action) {
+    case 'recordCheckIn':
+      return recordCheckIn(values[0]);
+    case 'recordCheckOut':
+      return recordCheckOut();
+    case 'recordBreakOut':
+      return recordBreakOut();
+    case 'recordBreakIn':
+      return recordBreakIn();
+    case 'reportRunningLate':
+      return reportRunningLate(values[0], values[1]);
+    case 'reportUnableToAttend':
+      return reportUnableToAttend(values[0], values[1]);
+    case 'recordLunchRetroactive':
+      return recordLunchRetroactive(values[0], values[1]);
+    default:
+      throw new Error('Unknown time-clock action: ' + action);
+  }
+}
+
 function recordCheckIn(rc) {
   requireValue_(rc, 'RC');
   appendLog_('Check In', { rc: rc });

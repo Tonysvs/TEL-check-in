@@ -608,7 +608,7 @@
           clearTimeout(timeout);
           setBusy(false);
           showToast('Something went wrong. ' + (error?.message || 'Please try again.'), true);
-        })[method](...args);
+        }).submitTimeClockAction(method, args);
     }
 
     function loadStatus() {
