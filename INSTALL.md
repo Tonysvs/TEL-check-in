@@ -2,7 +2,7 @@
 
 1. Open the Google Apps Script project that powers the current web app.
 2. Open its existing HTML file (often named `Index.html`).
-3. Replace that file's contents with the supplied `Index.html`.
+3. Replace that file's contents with the supplied `index.html` (the lowercase filename also works as the entry page on static hosts).
 4. Save, then choose **Deploy → Manage deployments → Edit**.
 5. Select **New version**, then deploy.
 
