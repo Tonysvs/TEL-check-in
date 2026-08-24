@@ -534,9 +534,9 @@
     <form class="modal-body" method="dialog" onsubmit="submitLunch(event)">
       <h2>Log lunch</h2>
       <p>Add the start and end time for a lunch you already took.</p>
-      <div class="field"><label for="lunchOut">Lunch started</label><input id="lunchOut" type="time" required></div>
+      <div class="field"><label for="lunchOut">Lunch started</label><input id="lunchOut" type="time" required onchange="setLunchEndFromStart()"></div>
       <div class="field"><label for="lunchIn">Lunch ended</label><input id="lunchIn" type="time" required></div>
-      <div class="modal-actions"><button class="cancel" value="cancel">Cancel</button><button class="confirm" value="default">Save lunch</button></div>
+      <div class="modal-actions"><button class="cancel" type="button" onclick="closeLunchDialog()">Cancel</button><button class="confirm" value="default">Save lunch</button></div>
     </form>
   </dialog>
 
@@ -660,10 +660,20 @@
     function submitLate(event) { event.preventDefault(); $('lateDialog').close(); runServer('reportRunningLate', [$('site').value, $('lateMinutes').value], `Your team was notified that you’ll be about ${$('lateMinutes').value} minutes late.`); }
 
     function openLunchDialog() { $('lunchOut').value = ''; $('lunchIn').value = ''; $('lunchDialog').showModal(); }
+    function closeLunchDialog() { $('lunchDialog').close(); }
+    function setLunchEndFromStart() {
+      const start = $('lunchOut').value;
+      if (!start) return;
+      const [hours, minutes] = start.split(':').map(Number);
+      const endMinutes = (hours * 60 + minutes + 30) % (24 * 60);
+      $('lunchIn').value = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+    }
     function submitLunch(event) {
       event.preventDefault();
       const start = $('lunchOut').value, end = $('lunchIn').value;
-      if (end <= start) { showToast('Lunch end time must be after the start time.', true); return; }
+      const toMinutes = value => { const [hours, minutes] = value.split(':').map(Number); return hours * 60 + minutes; };
+      const duration = (toMinutes(end) - toMinutes(start) + 1440) % 1440;
+      if (!duration || duration > 240) { showToast('Please enter a valid lunch period of up to 4 hours.', true); return; }
       $('lunchDialog').close();
       runServer('recordLunchRetroactive', [formatTime(start), formatTime(end)], 'Your lunch was recorded.');
     }
