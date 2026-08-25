@@ -92,6 +92,7 @@ function reportRunningLate(rc, minutes, message) {
   }
   const note = String(message || '').trim().slice(0, 500);
   appendLog_('Running Late', { rc: rc, lateMinutes: lateMinutes, details: note });
+  setStatus_('Running ' + lateMinutes + ' minutes late to ' + rc, rc);
   return 'Your team was notified that you’ll be about ' + lateMinutes + ' minutes late.';
 }
 
@@ -101,8 +102,8 @@ function reportUnableToAttend(rc, needsSickPay) {
     rc: rc,
     sickPayRequested: needsSickPay ? 'Yes' : 'No'
   });
-  setStatus_('Unable to attend today', rc);
-  return 'Your absence was recorded.';
+  setStatus_('Unable to attend today at ' + rc, rc);
+  return 'Your absence at ' + rc + ' was recorded and your team was notified.';
 }
 
 function recordLunchRetroactive(lunchStart, lunchEnd) {
