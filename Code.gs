@@ -44,7 +44,7 @@ function submitTimeClockAction(action, args) {
     case 'recordBreakIn':
       return recordBreakIn();
     case 'reportRunningLate':
-      return reportRunningLate(values[0], values[1]);
+      return reportRunningLate(values[0], values[1], values[2]);
     case 'reportUnableToAttend':
       return reportUnableToAttend(values[0], values[1]);
     case 'recordLunchRetroactive':
@@ -84,13 +84,14 @@ function recordBreakIn() {
   return 'Your break has ended.';
 }
 
-function reportRunningLate(rc, minutes) {
+function reportRunningLate(rc, minutes, message) {
   requireValue_(rc, 'RC');
   const lateMinutes = Number(minutes);
   if (!Number.isFinite(lateMinutes) || lateMinutes < 1 || lateMinutes > 480) {
     throw new Error('Late minutes must be between 1 and 480.');
   }
-  appendLog_('Running Late', { rc: rc, lateMinutes: lateMinutes });
+  const note = String(message || '').trim().slice(0, 500);
+  appendLog_('Running Late', { rc: rc, lateMinutes: lateMinutes, details: note });
   return 'Your team was notified that you’ll be about ' + lateMinutes + ' minutes late.';
 }
 

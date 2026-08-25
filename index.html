@@ -140,7 +140,7 @@
       font-weight: 750;
     }
 
-    select, input {
+    select, input, textarea {
       width: 100%;
       min-height: 50px;
       padding: 0 14px;
@@ -151,7 +151,15 @@
       font-size: 16px;
     }
 
-    select:focus, input:focus, button:focus-visible {
+    textarea {
+      min-height: 88px;
+      padding-top: 12px;
+      padding-bottom: 12px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    select:focus, input:focus, textarea:focus, button:focus-visible {
       outline: 3px solid rgba(56,111,209,.25);
       outline-offset: 2px;
       border-color: var(--brand);
@@ -540,7 +548,8 @@
         <button class="stepper" type="button" onclick="adjustLateMinutes(5)" aria-label="Add 5 minutes">+</button>
       </div>
       <div class="range-labels" aria-hidden="true"><span>5 min</span><span>2 hours</span></div>
-      <div class="modal-actions"><button class="cancel" value="cancel">Cancel</button><button class="confirm" value="default">Notify team</button></div>
+      <div class="field"><label for="lateMessage">Message <span style="color:var(--muted); font-weight:500">(optional)</span></label><textarea id="lateMessage" maxlength="500" placeholder="Add any helpful details for your team"></textarea></div>
+      <div class="modal-actions"><button class="cancel" type="button" onclick="closeLateDialog()">Cancel</button><button class="confirm" value="default">Notify team</button></div>
     </form>
   </dialog>
 
@@ -691,7 +700,8 @@
     function startBreak() { runServer('recordBreakOut', [], 'Your break has started.'); }
     function endBreak() { runServer('recordBreakIn', [], 'Your break has ended.'); }
 
-    function openLateDialog() { setLateMinutes(15); $('lateDialog').showModal(); setTimeout(() => $('lateMinutes').focus(), 0); }
+    function openLateDialog() { setLateMinutes(15); $('lateMessage').value = ''; $('lateDialog').showModal(); setTimeout(() => $('lateMinutes').focus(), 0); }
+    function closeLateDialog() { $('lateDialog').close(); }
     function setLateMinutes(minutes) {
       $('lateMinutes').value = Math.max(5, Math.min(120, minutes));
       syncLateMinutes();
@@ -704,7 +714,7 @@
         button.classList.toggle('active', Number(button.textContent.match(/\d+/)[0]) === Number(minutes));
       });
     }
-    function submitLate(event) { event.preventDefault(); $('lateDialog').close(); runServer('reportRunningLate', [$('site').value, $('lateMinutes').value], `Your team was notified that you’ll be about ${$('lateMinutes').value} minutes late.`); }
+    function submitLate(event) { event.preventDefault(); $('lateDialog').close(); runServer('reportRunningLate', [$('site').value, $('lateMinutes').value, $('lateMessage').value.trim()], `Your team was notified that you’ll be about ${$('lateMinutes').value} minutes late.`); }
 
     function openLunchDialog() { $('lunchOut').value = ''; $('lunchIn').value = ''; $('lunchDialog').showModal(); }
     function closeLunchDialog() { $('lunchDialog').close(); }
