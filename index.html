@@ -362,7 +362,23 @@
     .minute-display span { color: var(--muted); font-weight: 750; }
 
     .minute-control {
-      width: 100%;
+      display: grid;
+      grid-template-columns: 48px 1fr 48px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .stepper {
+      width: 48px;
+      height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: white;
+      color: var(--brand);
+      cursor: pointer;
+      font-size: 27px;
+      font-weight: 500;
+      line-height: 1;
     }
 
     input[type="range"] {
@@ -376,7 +392,7 @@
     .range-labels {
       display: flex;
       justify-content: space-between;
-      margin: 0;
+      margin: 0 58px;
       color: var(--muted);
       font-size: 12px;
     }
@@ -489,7 +505,9 @@
       <div class="minute-display" aria-live="polite"><output id="lateMinutesOutput" for="lateMinutes">15</output><span>minutes</span></div>
       <label class="sr-only" for="lateMinutes">Minutes late</label>
       <div class="minute-control">
+        <button class="stepper" type="button" onclick="adjustLateMinutes(-5)" aria-label="Subtract 5 minutes">−</button>
         <input id="lateMinutes" type="range" min="5" max="120" step="5" value="15" oninput="syncLateMinutes()">
+        <button class="stepper" type="button" onclick="adjustLateMinutes(5)" aria-label="Add 5 minutes">+</button>
       </div>
       <div class="range-labels" aria-hidden="true"><span>5 min</span><span>2 hours</span></div>
       <div class="field"><label for="lateMessage">Message <span style="color:var(--muted); font-weight:500">(optional)</span></label><textarea id="lateMessage" maxlength="500" placeholder="Add any helpful details for your team"></textarea></div>
@@ -646,6 +664,11 @@
 
     function openLateDialog() { $('lateMinutes').value = 15; syncLateMinutes(); $('lateMessage').value = ''; $('lateDialog').showModal(); setTimeout(() => $('lateMinutes').focus(), 0); }
     function closeLateDialog() { $('lateDialog').close(); }
+    function adjustLateMinutes(change) {
+      const nextValue = Number($('lateMinutes').value) + change;
+      $('lateMinutes').value = Math.max(5, Math.min(120, nextValue));
+      syncLateMinutes();
+    }
     function syncLateMinutes() {
       const minutes = $('lateMinutes').value;
       $('lateMinutesOutput').value = minutes;
