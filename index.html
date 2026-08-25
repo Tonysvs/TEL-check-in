@@ -467,7 +467,7 @@
           <button class="text-button" type="button" onclick="openSiteDialog()">Change RC</button>
         </div>
 
-        <button class="primary" type="button" onclick="checkIn()">Check in now</button>
+        <button class="primary" type="button" onclick="openCheckInDialog()">Check in now</button>
 
         <p class="section-title">During your shift</p>
         <div class="grid">
@@ -500,6 +500,20 @@
         <span><strong>Keep this site selected</strong><small>Skip this question next time on this device. Leave unchecked to choose again tomorrow.</small></span>
       </label>
       <div class="modal-actions"><button class="confirm" value="default">Use this site</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="checkInDialog">
+    <form class="modal-body" method="dialog" onsubmit="submitCheckIn(event)">
+      <h2>When are you leaving?</h2>
+      <p>We’ll remind you to check out before you leave your RC.</p>
+      <label for="expectedCheckout">Expected departure time</label>
+      <input id="expectedCheckout" type="time" required>
+      <label class="remember-choice" for="rememberDeparture">
+        <input id="rememberDeparture" type="checkbox" checked>
+        <span><strong>Remember this departure time</strong><small>Use it as the starting time for future shifts. You can always change it.</small></span>
+      </label>
+      <div class="modal-actions"><button class="cancel" type="button" onclick="closeCheckInDialog()">Cancel</button><button class="confirm" value="default">Check in</button></div>
     </form>
   </dialog>
 
@@ -554,6 +568,7 @@
     let toastTimer;
     const SITE_PREF_KEY = 'edLadderTimeClockSitePreference';
     const DEMO_STATUS_KEY = 'edLadderTimeClockDemoStatus';
+    const DEPARTURE_PREF_KEY = 'edLadderUsualDepartureTime';
 
     function setBusy(isBusy) {
       $('busy').classList.toggle('show', isBusy);
@@ -639,7 +654,39 @@
       try { localStorage.setItem(DEMO_STATUS_KEY, nextStatus); } catch (_) {}
     }
 
-    function checkIn() { runServer('recordCheckIn', [$('site').value], `Checked in at ${$('site').value}.`); }
+    function openCheckInDialog() {
+      let savedTime = '';
+      try { savedTime = localStorage.getItem(DEPARTURE_PREF_KEY) || ''; } catch (_) {}
+      $('expectedCheckout').value = savedTime || suggestedDepartureTime();
+      $('rememberDeparture').checked = Boolean(savedTime) || true;
+      $('checkInDialog').showModal();
+      setTimeout(() => $('expectedCheckout').focus(), 0);
+    }
+
+    function closeCheckInDialog() { $('checkInDialog').close(); }
+
+    function suggestedDepartureTime() {
+      const date = new Date(Date.now() + 4 * 60 * 60 * 1000);
+      date.setMinutes(Math.ceil(date.getMinutes() / 15) * 15, 0, 0);
+      return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function submitCheckIn(event) {
+      event.preventDefault();
+      const departure = $('expectedCheckout').value;
+      if ($('rememberDeparture').checked) {
+        try { localStorage.setItem(DEPARTURE_PREF_KEY, departure); } catch (_) {}
+      } else {
+        try { localStorage.removeItem(DEPARTURE_PREF_KEY); } catch (_) {}
+      }
+      $('checkInDialog').close();
+      runServer(
+        'recordCheckIn',
+        [$('site').value, departure],
+        `Checked in at ${$('site').value}. Checkout reminder set for ${formatTime(departure)}.`
+      );
+    }
+
     function checkOut() { runServer('recordCheckOut', [], 'You are checked out.'); }
     function startBreak() { runServer('recordBreakOut', [], 'Your break has started.'); }
     function endBreak() { runServer('recordBreakIn', [], 'Your break has ended.'); }

@@ -4,11 +4,11 @@
 2. Add or replace the server file with the supplied `Code.gs`.
 3. Add an HTML file named `index` and replace its contents with the supplied `index.html`.
 4. Save the project, select `setupTimeClock` from the function menu, and click **Run** once.
-5. Approve spreadsheet access when Google requests authorization. A successful run returns a message confirming the `Time Clock Log` tab.
+5. Approve spreadsheet, email, and trigger access when Google requests authorization. A successful run confirms the `Time Clock Log` tab and installs the five-minute checkout-reminder trigger.
 6. Choose **Deploy → Manage deployments → Edit**.
 7. Select **New version**, set **Execute as** to **Me**, and deploy it to users in `theedladder.org`.
 
-The backend writes to spreadsheet `1Jju4GsByyI1IAzVc-QgMiJCGOuVZEpNecm_ORh9nfWE`. It automatically creates a tab named **Time Clock Log**, adds column headers, and appends one row for every action.
+The backend writes to spreadsheet `1Jju4GsByyI1IAzVc-QgMiJCGOuVZEpNecm_ORh9nfWE`. It automatically creates a tab named **Time Clock Log**, adds column headers, and appends one row for every action. Check-ins include the expected departure time. While a shift remains open, the trigger emails the AC shortly before departure, at departure time, and 15 minutes afterward.
 
 The replacement front end preserves the existing server function names:
 

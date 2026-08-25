@@ -13,7 +13,9 @@ const LOG_HEADERS = [
   'Lunch Start',
   'Lunch End',
   'Sick Pay Requested',
-  'Details'
+  'Details',
+  'Expected Checkout',
+  'Reminder Status'
 ];
 
 function doGet() {
@@ -24,8 +26,9 @@ function doGet() {
 
 function setupTimeClock() {
   const sheet = getLogSheet_();
+  installCheckoutReminderTrigger_();
   SpreadsheetApp.flush();
-  return 'Connected to "' + sheet.getName() + '" in spreadsheet ' + SPREADSHEET_ID + '.';
+  return 'Connected to "' + sheet.getName() + '" and installed checkout reminders.';
 }
 
 function submitTimeClockAction(action, args) {
@@ -33,7 +36,7 @@ function submitTimeClockAction(action, args) {
 
   switch (action) {
     case 'recordCheckIn':
-      return recordCheckIn(values[0]);
+      return recordCheckIn(values[0], values[1]);
     case 'recordCheckOut':
       return recordCheckOut();
     case 'recordBreakOut':
@@ -51,9 +54,13 @@ function submitTimeClockAction(action, args) {
   }
 }
 
-function recordCheckIn(rc) {
+function recordCheckIn(rc, expectedCheckout) {
   requireValue_(rc, 'RC');
-  appendLog_('Check In', { rc: rc });
+  requireValue_(expectedCheckout, 'Expected checkout time');
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(expectedCheckout))) {
+    throw new Error('Expected checkout time must be a valid time.');
+  }
+  appendLog_('Check In', { rc: rc, expectedCheckout: expectedCheckout });
   setStatus_('Checked in at ' + rc, rc);
   return 'Checked in at ' + rc + '.';
 }
@@ -132,7 +139,9 @@ function appendLog_(action, values) {
       values.lunchStart || '',
       values.lunchEnd || '',
       values.sickPayRequested || '',
-      values.details || ''
+      values.details || '',
+      values.expectedCheckout || '',
+      ''
     ]);
   } finally {
     lock.releaseLock();
@@ -147,13 +156,14 @@ function getLogSheet_() {
     sheet = spreadsheet.insertSheet(LOG_SHEET_NAME);
   }
 
-  if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, LOG_HEADERS.length).setValues([LOG_HEADERS]);
-    sheet.getRange(1, 1, 1, LOG_HEADERS.length)
-      .setFontWeight('bold')
-      .setBackground('#386fd1')
-      .setFontColor('#ffffff');
-    sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, LOG_HEADERS.length).setValues([LOG_HEADERS]);
+  sheet.getRange(1, 1, 1, LOG_HEADERS.length)
+    .setFontWeight('bold')
+    .setBackground('#386fd1')
+    .setFontColor('#ffffff');
+  sheet.setFrozenRows(1);
+
+  if (sheet.getLastRow() <= 1) {
     sheet.autoResizeColumns(1, LOG_HEADERS.length);
   }
 
@@ -178,4 +188,92 @@ function requireValue_(value, label) {
   if (value === null || value === undefined || String(value).trim() === '') {
     throw new Error(label + ' is required.');
   }
+}
+
+function installCheckoutReminderTrigger_() {
+  const handler = 'checkoutReminderSweep';
+  const exists = ScriptApp.getProjectTriggers().some(function(trigger) {
+    return trigger.getHandlerFunction() === handler;
+  });
+
+  if (!exists) {
+    ScriptApp.newTrigger(handler).timeBased().everyMinutes(5).create();
+  }
+}
+
+function checkoutReminderSweep() {
+  const sheet = getLogSheet_();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, LOG_HEADERS.length).getValues();
+  const openShifts = {};
+
+  rows.forEach(function(row, index) {
+    const email = String(row[3] || '').trim().toLowerCase();
+    const action = row[4];
+    if (!email || email === 'unknown user') return;
+
+    if (action === 'Check In') {
+      openShifts[email] = {
+        rowNumber: index + 2,
+        email: email,
+        date: row[1],
+        rc: row[5],
+        expectedCheckout: row[11],
+        reminderStatus: row[12]
+      };
+    } else if (action === 'Check Out') {
+      delete openShifts[email];
+    }
+  });
+
+  const now = new Date();
+  Object.keys(openShifts).forEach(function(email) {
+    sendCheckoutReminderIfDue_(sheet, openShifts[email], now);
+  });
+}
+
+function sendCheckoutReminderIfDue_(sheet, shift, now) {
+  if (!shift.expectedCheckout) return;
+  const dateText = shift.date instanceof Date
+    ? Utilities.formatDate(shift.date, TIME_ZONE, 'yyyy-MM-dd')
+    : String(shift.date);
+  const departure = Utilities.parseDate(
+    dateText + ' ' + String(shift.expectedCheckout),
+    TIME_ZONE,
+    'yyyy-MM-dd HH:mm'
+  );
+  const minutesUntil = (departure.getTime() - now.getTime()) / 60000;
+  const stageRanks = { '': 0, soon: 1, due: 2, late: 3 };
+  let stage = '';
+  let subject = '';
+  let message = '';
+
+  if (minutesUntil <= -15) {
+    stage = 'late';
+    subject = 'You may still be checked in';
+    message = 'Your expected departure time passed more than 15 minutes ago. Please check out now or contact your manager if your time needs correction.';
+  } else if (minutesUntil <= 0) {
+    stage = 'due';
+    subject = 'Time to check out';
+    message = 'You reached your expected departure time. Please check out before leaving your RC.';
+  } else if (minutesUntil <= 10) {
+    stage = 'soon';
+    subject = 'Your shift ends soon';
+    message = 'Your expected departure time is in about 10 minutes. Remember to check out before leaving your RC.';
+  }
+
+  if (!stage || stageRanks[stage] <= (stageRanks[shift.reminderStatus] || 0)) return;
+
+  const appUrl = ScriptApp.getService().getUrl();
+  const linkLine = appUrl ? '\n\nOpen the time clock: ' + appUrl : '';
+  MailApp.sendEmail({
+    to: shift.email,
+    subject: subject,
+    body: message + '\n\nRC: ' + shift.rc + linkLine,
+    htmlBody: '<p>' + message + '</p><p><strong>RC:</strong> ' + shift.rc + '</p>' +
+      (appUrl ? '<p><a href="' + appUrl + '">Open the time clock</a></p>' : '')
+  });
+  sheet.getRange(shift.rowNumber, 13).setValue(stage);
 }
