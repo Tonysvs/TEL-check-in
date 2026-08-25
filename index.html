@@ -559,7 +559,7 @@
       <h2>Unable to attend?</h2>
       <p>Your school leader and program manager will be notified.</p>
       <label><input id="sickPay" type="checkbox" style="width:auto; min-height:auto; margin-right:8px">Request sick time pay for this absence</label>
-      <div class="modal-actions"><button class="cancel" value="cancel">Go back</button><button class="confirm warn" value="default">Notify team</button></div>
+      <div class="modal-actions"><button class="cancel" type="button" onclick="closeAbsenceDialog()">Go back</button><button class="confirm warn" value="default">Notify team</button></div>
     </form>
   </dialog>
 
@@ -732,6 +732,7 @@
     }
 
     function openAbsenceDialog() { $('sickPay').checked = false; $('absenceDialog').showModal(); }
+    function closeAbsenceDialog() { $('absenceDialog').close(); }
     function submitAbsence(event) { event.preventDefault(); $('absenceDialog').close(); runServer('reportUnableToAttend', [$('site').value, $('sickPay').checked], 'Your school leader and program manager were notified.'); }
 
     function todayKey() {
